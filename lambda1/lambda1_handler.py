@@ -26,8 +26,18 @@ def get_recommendation(score, salary_vs_market):
 def lambda_handler(event, context):
     try:
 
-        # Step 1 — parse input from SQS message
-        body      = json.loads(event['Records'][0]['body'])
+        # Step 1 — parse input (SQS or direct)
+        if 'Records' in event:
+            # coming from SQS
+            body = json.loads(event['Records'][0]['body'])
+        else:
+            # coming from direct API Gateway call
+            # API Gateway proxy wraps body in event['body']
+            if 'body' in event:
+                body = json.loads(event['body'])
+            else:
+                body = event
+
         job_title = body.get('job_title')
         city      = body.get('city')
         salary    = body.get('gross_annual_salary')

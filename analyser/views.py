@@ -257,3 +257,62 @@ def index(request):
 
     return render(request, 'analyser/index.html',
                  {'cities': IRISH_CITIES})
+                 
+                 
+# ── Direct API view (for classmates) ─────────────────────
+@api_view(['POST'])
+def analyse_direct(request):
+
+    data      = request.data
+    job_title = data.get('job_title')
+    city      = data.get('city')
+    salary    = data.get('gross_annual_salary')
+    country   = 'Ireland'
+
+    # validate inputs
+    if not job_title or not city or not salary:
+        return Response(
+            {'error': 'Missing required fields: job_title, city, gross_annual_salary'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # get market salary
+    salary_data = get_market_salary(job_title, city)
+
+    if not salary_data:
+        return Response(
+            {'error': f'No salary data found for "{job_title}" in {city}'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    market_salary = salary_data['median_salary']
+    confidence    = salary_data['confidence']
+    salary_count  = salary_data['salary_count']
+
+    # get cost of living
+    monthly_cost     = get_cost_of_living(city, country)
+    salary_vs_market = salary - market_salary
+    monthly_income   = round(salary / 12)
+    monthly_savings  = round(monthly_income - monthly_cost)
+    score            = calculate_score(monthly_savings, monthly_income)
+    recommendation   = get_recommendation(score, salary_vs_market)
+
+    return Response({
+        'job_title':                 job_title,
+        'city':                      city,
+        'gross_annual_salary_eur':   salary,
+        'market_average_salary_eur': market_salary,
+        'salary_vs_market_eur':      salary_vs_market,
+        'estimated_monthly_income':  monthly_income,
+        'estimated_monthly_cost':    monthly_cost,
+        'estimated_monthly_savings': monthly_savings,
+        'affordability_score':       score,
+        'recommendation':            recommendation,
+        'confidence':                confidence,
+        'salary_count':              salary_count,
+    })                 
+                 
+                 
+                 
+                 
+                 
