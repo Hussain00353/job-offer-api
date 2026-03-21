@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Offer Results</title>
+  <link rel="stylesheet" href="{% static 'analyser/css/results.css' %}">
+</head>
+<body>
+  <div class="container">
+
+    <h1>Job Offer Results</h1>
+    <p class="subtitle">{{ result.job_title }} in {{ result.city }}</p>
+
+    <!-- Recommendation -->
+    <div class="card">
+      <div class="card-title">Recommendation</div>
+      <div class="recommendation">{{ result.recommendation }}</div>
+    </div>
+
+    <!-- Affordability Score -->
+    <div class="card">
+      <div class="card-title">Affordability Score</div>
+      <div class="score">
+        {{ result.affordability_score }}
+        <span class="score-sub">/100</span>
+      </div>
+      <div class="score-label">Based on salary vs cost of living</div>
+    </div>
+
+    <!-- Salary Breakdown -->
+    <div class="card">
+      <div class="card-title">Salary Breakdown</div>
+
+      <div class="row">
+        <span class="row-label">Your Salary</span>
+        <span class="row-value">
+          €{{ result.gross_annual_salary_eur|floatformat:0 }}
+        </span>
+      </div>
+
+      <div class="row">
+        <span class="row-label">Market Average</span>
+        <span class="row-value">
+          €{{ result.market_average_salary_eur|floatformat:0 }}
+        </span>
+      </div>
+
+      <div class="row">
+        <span class="row-label">Difference vs Market</span>
+        <span class="row-value
+          {% if result.salary_vs_market_eur >= 0 %}positive
+          {% else %}negative{% endif %}">
+          {% if result.salary_vs_market_eur >= 0 %}+{% endif %}
+          €{{ result.salary_vs_market_eur|floatformat:0 }}
+        </span>
+      </div>
+
+    </div>
+
+    <!-- Monthly Budget -->
+    <div class="card">
+      <div class="card-title">Monthly Budget</div>
+
+      <div class="row">
+        <span class="row-label">Monthly Income</span>
+        <span class="row-value">
+          €{{ result.estimated_monthly_income|floatformat:0 }}
+        </span>
+      </div>
+
+      <div class="row">
+        <span class="row-label">Monthly Cost of Living</span>
+        <span class="row-value negative">
+          -€{{ result.estimated_monthly_cost|floatformat:0 }}
+        </span>
+      </div>
+
+      <div class="row">
+        <span class="row-label">Monthly Savings</span>
+        <span class="row-value positive">
+          €{{ result.estimated_monthly_savings|floatformat:0 }}
+        </span>
+      </div>
+
+    </div>
+
+    <a href="/" class="back-btn">Analyse Another Offer</a>
+
+  </div>
+</body>
+</html>

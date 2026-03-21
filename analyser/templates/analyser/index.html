@@ -1,0 +1,63 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Offer Analysis</title>
+  <link rel="stylesheet" href="{% static 'analyser/css/style.css' %}">
+</head>
+<body>
+  <div class="container">
+    <h1>Job Offer Analysis</h1>
+    <p class="subtitle">Find out if your job offer is worth taking</p>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="/">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label>Job Title</label>
+        <input
+          type="text"
+          name="job_title"
+          placeholder="e.g. Cloud Engineer"
+          required />
+      </div>
+
+      <div class="form-group">
+        <label>City</label>
+        <input
+          type="text"
+          name="city"
+          placeholder="e.g. Dublin"
+          required />
+      </div>
+
+      <div class="form-group">
+        <label>Country</label>
+        <input
+          type="text"
+          name="country"
+          placeholder="e.g. Ireland"
+          required />
+      </div>
+
+      <div class="form-group">
+        <label>Gross Annual Salary (EUR)</label>
+        <input
+          type="number"
+          name="gross_annual_salary"
+          placeholder="e.g. 65000"
+          required />
+      </div>
+
+      <button type="submit">Analyse My Offer</button>
+
+    </form>
+  </div>
+</body>
+</html>

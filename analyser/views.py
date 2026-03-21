@@ -4,6 +4,7 @@ import json
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
+from django.shortcuts import render
 
 # ── Adzuna API credentials ──────────────────────────────
 ADZUNA_APP_ID  = "ccd8eda6"
@@ -30,7 +31,7 @@ def get_market_salary(job_title, city):
         histogram = data.get('histogram', {})
 
         if not histogram:
-            return 72000  # fallback
+            return 72000
 
         total_jobs   = 0
         total_salary = 0
@@ -43,7 +44,7 @@ def get_market_salary(job_title, city):
         return round(total_salary / total_jobs)
 
     except Exception:
-        return 72000  # fallback
+        return 72000
 
 # ── Helper: get cost of living from RapidAPI ─────────────
 def get_cost_of_living(city, country):
@@ -67,7 +68,7 @@ def get_cost_of_living(city, country):
         data = json.loads(res.read().decode("utf-8"))
 
         if 'prices' not in data:
-            return 2960  # fallback
+            return 2960
 
         prices = data['prices']
 
@@ -77,10 +78,10 @@ def get_cost_of_living(city, country):
             )
             return round(item['avg'], 2) if item else 0
 
-        rent          = get_by_id(29)
-        transport     = get_by_id(46)
-        utilities     = get_by_id(54)
-        internet      = get_by_id(55)
+        rent      = get_by_id(29)
+        transport = get_by_id(46)
+        utilities = get_by_id(54)
+        internet  = get_by_id(55)
 
         groceries = round(
             get_by_id(11) * 6  +
@@ -111,7 +112,7 @@ def get_cost_of_living(city, country):
         return total
 
     except Exception:
-        return 2960  # fallback
+        return 2960
 
 # ── Helper: affordability score ──────────────────────────
 def calculate_score(monthly_savings, monthly_income):
@@ -130,38 +131,30 @@ def get_recommendation(score, salary_vs_market):
     else:
         return "Poor Offer - Consider Declining"
 
-# ── Main API view ─────────────────────────────────────────
+# ── REST API view ─────────────────────────────────────────
 @api_view(['POST'])
 def analyse(request):
 
-    # Step 1 — get data from request
     data      = request.data
     job_title = data.get('job_title')
     city      = data.get('city')
     salary    = data.get('gross_annual_salary')
     country   = data.get('country', 'Ireland')
 
-    # Step 2 — validate inputs
     if not job_title or not city or not salary:
         return Response(
-            {'error': 'Missing required fields: job_title, city, gross_annual_salary'},
+            {'error': 'Missing required fields'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # Step 3 — call Adzuna (real market salary)
-    market_salary = get_market_salary(job_title, city)
-
-    # Step 4 — call RapidAPI (real cost of living)
-    monthly_cost  = get_cost_of_living(city, country)
-
-    # Step 5 — calculations
+    market_salary    = get_market_salary(job_title, city)
+    monthly_cost     = get_cost_of_living(city, country)
     salary_vs_market = salary - market_salary
     monthly_income   = round(salary / 12)
     monthly_savings  = round(monthly_income - monthly_cost)
     score            = calculate_score(monthly_savings, monthly_income)
     recommendation   = get_recommendation(score, salary_vs_market)
 
-    # Step 6 — return response
     return Response({
         'job_title':                 job_title,
         'city':                      city,
@@ -174,3 +167,43 @@ def analyse(request):
         'affordability_score':       score,
         'recommendation':            recommendation
     })
+
+# ── Frontend views ────────────────────────────────────────
+def index(request):
+    if request.method == 'POST':
+        job_title  = request.POST.get('job_title')
+        city       = request.POST.get('city')
+        country    = request.POST.get('country', 'Ireland')
+        salary_str = request.POST.get('gross_annual_salary')
+
+        try:
+            salary = int(salary_str)
+        except:
+            return render(request, 'analyser/index.html',
+                         {'error': 'Please enter a valid salary'})
+
+        market_salary    = get_market_salary(job_title, city)
+        monthly_cost     = get_cost_of_living(city, country)
+        salary_vs_market = salary - market_salary
+        monthly_income   = round(salary / 12)
+        monthly_savings  = round(monthly_income - monthly_cost)
+        score            = calculate_score(monthly_savings, monthly_income)
+        recommendation   = get_recommendation(score, salary_vs_market)
+
+        result = {
+            'job_title':                 job_title,
+            'city':                      city,
+            'gross_annual_salary_eur':   salary,
+            'market_average_salary_eur': market_salary,
+            'salary_vs_market_eur':      salary_vs_market,
+            'estimated_monthly_income':  monthly_income,
+            'estimated_monthly_cost':    monthly_cost,
+            'estimated_monthly_savings': monthly_savings,
+            'affordability_score':       score,
+            'recommendation':            recommendation
+        }
+
+        return render(request, 'analyser/results.html',
+                     {'result': result})
+
+    return render(request, 'analyser/index.html')
