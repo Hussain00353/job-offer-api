@@ -2,9 +2,9 @@ import pytest
 import sys
 import os
 
+# ── Django setup ──────────────────────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'jobofferapi.settings')
+os.environ['DJANGO_SETTINGS_MODULE'] = 'jobofferapi.settings'
 
 import django
 django.setup()

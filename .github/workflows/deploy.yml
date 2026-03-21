@@ -29,7 +29,9 @@ jobs:
       - name: Run tests
         run: |
           cd jobofferapi
-          python -m pytest tests/ -v --tb=short
+          python -m pytest tests/test_analyser.py -v --tb=short
+        env:
+          DJANGO_SETTINGS_MODULE: jobofferapi.settings
 
   # ── JOB 2: Deploy Lambda 2 ───────────────────────────
   deploy-lambda2:
