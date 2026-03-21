@@ -1,0 +1,31 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install django djangorestframework requests boto3 pytest
+
+      - name: Run tests
+        run: |
+          python -m pytest tests/test_analyser.py -v --tb=short
+        env:
+          DJANGO_SETTINGS_MODULE: jobofferapi.settings
+          PYTHONPATH: .
