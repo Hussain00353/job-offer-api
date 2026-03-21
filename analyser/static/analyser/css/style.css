@@ -81,6 +81,24 @@ button:hover {
   background: #333;
 }
 
+select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #111;
+  outline: none;
+  background: white;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+select:focus {
+  border-color: #111;
+}
 .error {
   background: #fff0f0;
   border: 1px solid #f5c2c2;

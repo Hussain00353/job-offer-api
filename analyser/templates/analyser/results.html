@@ -11,7 +11,7 @@
   <div class="container">
 
     <h1>Job Offer Results</h1>
-    <p class="subtitle">{{ result.job_title }} in {{ result.city }}</p>
+    <p class="subtitle">{{ result.job_title }} in {{ result.city }}, Ireland</p>
 
     <!-- Recommendation -->
     <div class="card">
@@ -57,6 +57,14 @@
         </span>
       </div>
 
+      <div class="row">
+        <span class="row-label">Data Confidence</span>
+        <span class="row-value">
+          {{ result.confidence }}
+          ({{ result.salary_count }} salaries)
+        </span>
+      </div>
+
     </div>
 
     <!-- Monthly Budget -->
@@ -85,6 +93,12 @@
       </div>
 
     </div>
+
+    <!-- Disclaimer -->
+    <p class="disclaimer">
+      * Salary data sourced from Glassdoor via RapidAPI ·
+      Cost of living data sourced from RapidAPI
+    </p>
 
     <a href="/" class="back-btn">Analyse Another Offer</a>
 
