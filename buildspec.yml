@@ -1,0 +1,46 @@
+version: 0.2
+
+phases:
+
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      - pip install --upgrade pip
+      - pip install django djangorestframework requests boto3 pytest
+
+  pre_build:
+    commands:
+      - echo Running tests...
+      - python -m pytest tests/test_analyser.py -v --tb=short
+    environment_variables:
+      DJANGO_SETTINGS_MODULE: jobofferapi.settings
+      PYTHONPATH: .
+
+  build:
+    commands:
+      - echo Packaging Lambda 2...
+      - cd lambda2
+      - pip install requests -t .
+      - zip -r lambda2.zip .
+      - cd ..
+      - echo Packaging Lambda 1...
+      - cd lambda1
+      - zip -r lambda1.zip .
+      - cd ..
+
+  post_build:
+    commands:
+      - echo Deploying Lambda 2...
+      - aws lambda update-function-code
+          --function-name job-offer-data-fetcher
+          --zip-file fileb://lambda2/lambda2.zip
+      - echo Deploying Lambda 1...
+      - aws lambda update-function-code
+          --function-name lambda1
+          --zip-file fileb://lambda1/lambda1.zip
+      - echo Deployment complete!
+
+artifacts:
+  files:
+    - '**/*'
