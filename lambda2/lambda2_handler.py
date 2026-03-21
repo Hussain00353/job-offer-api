@@ -4,42 +4,42 @@ import http.client
 import os
 
 # ── credentials from environment variables ───────────────
-ADZUNA_APP_ID  = os.environ.get('ADZUNA_APP_ID')
-ADZUNA_APP_KEY = os.environ.get('ADZUNA_APP_KEY')
-RAPIDAPI_KEY   = os.environ.get('RAPIDAPI_KEY')
+RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY')
 
-# ── get market salary from Adzuna ────────────────────────
+# ── get market salary from Glassdoor ─────────────────────
 def get_market_salary(job_title, city):
-    url = "https://api.adzuna.com/v1/api/jobs/gb/histogram"
-
-    params = {
-        'app_id':       ADZUNA_APP_ID,
-        'app_key':      ADZUNA_APP_KEY,
-        'what':         job_title,
-        'where':        city,
-        'content-type': 'application/json'
-    }
-
     try:
-        response  = requests.get(url, params=params, timeout=10)
-        data      = response.json()
-        histogram = data.get('histogram', {})
+        conn = http.client.HTTPSConnection(
+            "job-salary-data.p.rapidapi.com"
+        )
 
-        if not histogram:
-            return 72000  # fallback
+        headers = {
+            'x-rapidapi-key':  RAPIDAPI_KEY,
+            'x-rapidapi-host': "job-salary-data.p.rapidapi.com"
+        }
 
-        total_jobs   = 0
-        total_salary = 0
+        location = f"{city} Ireland"
+        url      = f"/job-salary?job_title={requests.utils.quote(job_title)}&location={requests.utils.quote(location)}&radius=25"
 
-        for salary_str, count in histogram.items():
-            salary        = int(salary_str)
-            total_salary += salary * count
-            total_jobs   += count
+        conn.request("GET", url, headers=headers)
 
-        return round(total_salary / total_jobs)
+        res  = conn.getresponse()
+        data = json.loads(res.read().decode("utf-8"))
+
+        if not data.get('data'):
+            return None
+
+        salary_data = data['data'][0]
+        return {
+            'median_salary': round(salary_data['median_salary']),
+            'min_salary':    round(salary_data['min_salary']),
+            'max_salary':    round(salary_data['max_salary']),
+            'confidence':    salary_data['confidence'],
+            'salary_count':  salary_data['salary_count'],
+        }
 
     except Exception:
-        return 72000  # fallback
+        return None
 
 # ── get cost of living from RapidAPI ─────────────────────
 def get_cost_of_living(city, country):
@@ -63,7 +63,7 @@ def get_cost_of_living(city, country):
         data = json.loads(res.read().decode("utf-8"))
 
         if 'prices' not in data:
-            return 2960  # fallback
+            return 2960
 
         prices = data['prices']
 
@@ -107,25 +107,24 @@ def get_cost_of_living(city, country):
         return total
 
     except Exception:
-        return 2960  # fallback
+        return 2960
 
 # ── Lambda handler ────────────────────────────────────────
 def lambda_handler(event, context):
     try:
-        # get inputs
         job_title = event.get('job_title')
         city      = event.get('city')
         country   = event.get('country', 'Ireland')
 
         # call both APIs
-        market_salary = get_market_salary(job_title, city)
-        monthly_cost  = get_cost_of_living(city, country)
+        salary_data  = get_market_salary(job_title, city)
+        monthly_cost = get_cost_of_living(city, country)
 
         # return data to Lambda 1
         return {
-            'statusCode':    200,
-            'market_salary': market_salary,
-            'monthly_cost':  monthly_cost
+            'statusCode':   200,
+            'salary_data':  salary_data,
+            'monthly_cost': monthly_cost
         }
 
     except Exception as e:

@@ -57,8 +57,9 @@ def lambda_handler(event, context):
         lambda2_data  = json.loads(
             lambda2_response['Payload'].read()
         )
-        market_salary = lambda2_data.get('market_salary', 72000)
-        monthly_cost  = lambda2_data.get('monthly_cost',  2960)
+        salary_data   = lambda2_data.get('salary_data')
+        market_salary = salary_data['median_salary'] if salary_data else 0
+        monthly_cost  = lambda2_data.get('monthly_cost', 2960)
 
         # Step 5 — do all calculations
         salary_vs_market = salary - market_salary
