@@ -124,6 +124,8 @@ def get_cost_of_living(city, country):
 def calculate_score(monthly_savings, monthly_income):
     if monthly_income <= 0:
         return 0
+    if monthly_savings <= 0:
+        return 0
     return min(100, round((monthly_savings / monthly_income) * 200))
 
 # ── Helper: recommendation ───────────────────────────────
