@@ -131,3 +131,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CSRF_TRUSTED_ORIGINS = [
     'https://2d38a09a07d34b61960283a9f9c0975d.vfs.cloud9.us-east-1.amazonaws.com'
 ]
+
+# ── Environment variables ─────────────────────────────────
+import os
+RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '')

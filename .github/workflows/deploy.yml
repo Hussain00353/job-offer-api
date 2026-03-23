@@ -31,6 +31,7 @@ jobs:
         env:
           DJANGO_SETTINGS_MODULE: jobofferapi.settings
           PYTHONPATH: .
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@master

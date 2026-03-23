@@ -1,3 +1,4 @@
+import os
 import requests
 import http.client
 import json
@@ -7,7 +8,7 @@ from rest_framework import status
 from django.shortcuts import render
 
 # ── RapidAPI credentials ─────────────────────────────────
-RAPIDAPI_KEY = "8f2e0bb612mshf9cb26c5d2e3bdcp143c5fjsn2aa3b57bda5b"
+RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '')
 
 # ── Irish cities list ─────────────────────────────────────
 IRISH_CITIES = [
