@@ -64,12 +64,21 @@
           ({{ result.salary_count }} salaries)
         </span>
       </div>
+      <div class="row">
+        <span class="row-label">Salary Data Source</span>
+        <span class="row-value">{{ result.salary_source }}</span>
+      </div>
+      
 
     </div>
 
     <!-- Monthly Budget -->
     <div class="card">
       <div class="card-title">Monthly Budget</div>
+      <div class="row">
+        <span class="row-label">Cost Data Source</span>
+        <span class="row-value">{{ result.cost_source }}</span>
+      </div>
 
       <div class="row">
         <span class="row-label">Monthly Income</span>
@@ -93,12 +102,6 @@
       </div>
 
     </div>
-
-    <!-- Disclaimer -->
-    <p class="disclaimer">
-      * Salary data sourced from Glassdoor via RapidAPI ·
-      Cost of living data sourced from RapidAPI
-    </p>
 
     <a href="/" class="back-btn">Analyse Another Offer</a>
 

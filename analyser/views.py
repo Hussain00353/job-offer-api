@@ -7,7 +7,7 @@ from rest_framework import status
 from django.shortcuts import render
 
 # ── RapidAPI credentials ─────────────────────────────────
-RAPIDAPI_KEY = "36c39fceccmshff2a1cc9bbf72f5p1ccfa1jsn634879f450de"
+RAPIDAPI_KEY = "8f2e0bb612mshf9cb26c5d2e3bdcp143c5fjsn2aa3b57bda5b"
 
 # ── Irish cities list ─────────────────────────────────────
 IRISH_CITIES = [
@@ -23,17 +23,13 @@ def get_market_salary(job_title, city):
         conn = http.client.HTTPSConnection(
             "job-salary-data.p.rapidapi.com"
         )
-
         headers = {
             'x-rapidapi-key':  RAPIDAPI_KEY,
             'x-rapidapi-host': "job-salary-data.p.rapidapi.com"
         }
-
         location = f"{city} Ireland"
         url      = f"/job-salary?job_title={requests.utils.quote(job_title)}&location={requests.utils.quote(location)}&radius=25"
-
         conn.request("GET", url, headers=headers)
-
         res  = conn.getresponse()
         data = json.loads(res.read().decode("utf-8"))
 
@@ -47,48 +43,60 @@ def get_market_salary(job_title, city):
             'max_salary':    round(salary_data['max_salary']),
             'confidence':    salary_data['confidence'],
             'salary_count':  salary_data['salary_count'],
+            'salary_source': "Public API (Glassdoor via RapidAPI)",
         }
 
     except Exception:
         return None
 
-# ── Helper: get cost of living from RapidAPI ─────────────
+# ── Helper: get cost of living from Classmate API ────────
+def get_cost_of_living_classmate(city, country, salary, job_title):
+    try:
+        url     = "https://yj143x3irb.execute-api.us-east-1.amazonaws.com/get-data"
+        payload = {
+            "country": country.lower(),
+            "city":    city,
+            "salary":  salary,
+            "job":     job_title
+        }
+        response = requests.post(url, json=payload, timeout=10)
+        data     = response.json()
+        if 'cost' in data:
+            return round(data['cost'], 2)
+        else:
+            return None
+    except Exception:
+        return None
+
+# ── Helper: get cost of living from RapidAPI (fallback) ──
 def get_cost_of_living(city, country):
     try:
         conn = http.client.HTTPSConnection(
             "cost-of-living-and-prices.p.rapidapi.com"
         )
-
         headers = {
             'x-rapidapi-key':  RAPIDAPI_KEY,
             'x-rapidapi-host': "cost-of-living-and-prices.p.rapidapi.com"
         }
-
         conn.request(
             "GET",
             f"/prices?city_name={city}&country_name={country}",
             headers=headers
         )
-
         res  = conn.getresponse()
         data = json.loads(res.read().decode("utf-8"))
-
         if 'prices' not in data:
             return 2960
-
         prices = data['prices']
-
         def get_by_id(good_id):
             item = next(
                 (p for p in prices if p['good_id'] == good_id), None
             )
             return round(item['avg'], 2) if item else 0
-
         rent      = get_by_id(29)
         transport = get_by_id(46)
         utilities = get_by_id(54)
         internet  = get_by_id(55)
-
         groceries = round(
             get_by_id(11) * 6  +
             get_by_id(13) * 6  +
@@ -106,17 +114,13 @@ def get_cost_of_living(city, country):
             get_by_id(22) * 4  +
             get_by_id(14) * 8
         , 2)
-
         eating_out    = round(get_by_id(38) * 12, 2)
         entertainment = round(get_by_id(42) * 2 + get_by_id(43), 2)
-
         total = round(
             rent + transport + utilities +
             internet + groceries + eating_out + entertainment
         , 2)
-
         return total
-
     except Exception:
         return 2960
 
@@ -142,7 +146,6 @@ def get_recommendation(score, salary_vs_market):
 # ── REST API view ─────────────────────────────────────────
 @api_view(['POST'])
 def analyse(request):
-
     data      = request.data
     job_title = data.get('job_title')
     city      = data.get('city')
@@ -158,9 +161,18 @@ def analyse(request):
     # get market salary
     salary_data   = get_market_salary(job_title, city)
     market_salary = salary_data['median_salary'] if salary_data else 0
+    salary_source = salary_data['salary_source'] if salary_data else 'N/A'
 
-    # get cost of living
-    monthly_cost     = get_cost_of_living(city, country)
+    # get cost of living from classmate API first
+    monthly_cost = get_cost_of_living_classmate(
+        city, country, salary, job_title
+    )
+    if monthly_cost:
+        cost_source = "Classmate API"
+    else:
+        monthly_cost = get_cost_of_living(city, country)
+        cost_source  = "RapidAPI"
+
     salary_vs_market = salary - market_salary
     monthly_income   = round(salary / 12)
     monthly_savings  = round(monthly_income - monthly_cost)
@@ -177,7 +189,9 @@ def analyse(request):
         'estimated_monthly_cost':    monthly_cost,
         'estimated_monthly_savings': monthly_savings,
         'affordability_score':       score,
-        'recommendation':            recommendation
+        'recommendation':            recommendation,
+        'salary_source':             salary_source,
+        'cost_source':               cost_source,
     })
 
 # ── Frontend views ────────────────────────────────────────
@@ -229,9 +243,18 @@ def index(request):
         market_salary = salary_data['median_salary']
         confidence    = salary_data['confidence']
         salary_count  = salary_data['salary_count']
+        salary_source = salary_data['salary_source']
 
-        # get cost of living
-        monthly_cost     = get_cost_of_living(city, country)
+        # get cost of living from classmate API first
+        monthly_cost = get_cost_of_living_classmate(
+            city, country, salary, job_title
+        )
+        if monthly_cost:
+            cost_source = "Classmate API"
+        else:
+            monthly_cost = get_cost_of_living(city, country)
+            cost_source  = "RapidAPI"
+
         salary_vs_market = salary - market_salary
         monthly_income   = round(salary / 12)
         monthly_savings  = round(monthly_income - monthly_cost)
@@ -252,6 +275,8 @@ def index(request):
             'recommendation':            recommendation,
             'confidence':                confidence,
             'salary_count':              salary_count,
+            'salary_source':             salary_source,
+            'cost_source':               cost_source,
         }
 
         return render(request, 'analyser/results.html',
@@ -259,19 +284,16 @@ def index(request):
 
     return render(request, 'analyser/index.html',
                  {'cities': IRISH_CITIES})
-                 
-                 
+
 # ── Direct API view (for classmates) ─────────────────────
 @api_view(['POST'])
 def analyse_direct(request):
-
     data      = request.data
     job_title = data.get('job_title')
     city      = data.get('city')
     salary    = data.get('gross_annual_salary')
     country   = 'Ireland'
 
-    # validate inputs
     if not job_title or not city or not salary:
         return Response(
             {'error': 'Missing required fields: job_title, city, gross_annual_salary'},
@@ -290,9 +312,18 @@ def analyse_direct(request):
     market_salary = salary_data['median_salary']
     confidence    = salary_data['confidence']
     salary_count  = salary_data['salary_count']
+    salary_source = salary_data['salary_source']
 
-    # get cost of living
-    monthly_cost     = get_cost_of_living(city, country)
+    # get cost of living from classmate API first
+    monthly_cost = get_cost_of_living_classmate(
+        city, country, salary, job_title
+    )
+    if monthly_cost:
+        cost_source = "Classmate API"
+    else:
+        monthly_cost = get_cost_of_living(city, country)
+        cost_source  = "RapidAPI"
+
     salary_vs_market = salary - market_salary
     monthly_income   = round(salary / 12)
     monthly_savings  = round(monthly_income - monthly_cost)
@@ -312,9 +343,6 @@ def analyse_direct(request):
         'recommendation':            recommendation,
         'confidence':                confidence,
         'salary_count':              salary_count,
-    })                 
-                 
-                 
-                 
-                 
-                 
+        'salary_source':             salary_source,
+        'cost_source':               cost_source,
+    })
