@@ -23,7 +23,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install django djangorestframework requests boto3 pytest
+          pip install django djangorestframework requests boto3 pytest python-dotenv
 
       - name: Run tests
         run: |
