@@ -10,6 +10,10 @@ from django.shortcuts import render
 # ── RapidAPI credentials ─────────────────────────────────
 RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '')
 
+# ── Constants ─────────────────────────────────────────────
+CLASSMATE_API_SOURCE = "Classmate API"
+RAPIDAPI_SOURCE= "RapidAPI"
+
 # ── Irish cities list ─────────────────────────────────────
 IRISH_CITIES = [
     'Dublin',
@@ -169,10 +173,10 @@ def analyse(request):
         city, country, salary, job_title
     )
     if monthly_cost:
-        cost_source = "Classmate API"
+        cost_source = CLASSMATE_API_SOURCE
     else:
         monthly_cost = get_cost_of_living(city, country)
-        cost_source  = "RapidAPI"
+        cost_source  = RAPIDAPI_SOURCE
 
     salary_vs_market = salary - market_salary
     monthly_income   = round(salary / 12)
@@ -251,10 +255,10 @@ def index(request):
             city, country, salary, job_title
         )
         if monthly_cost:
-            cost_source = "Classmate API"
+            cost_source = CLASSMATE_API_SOURCE
         else:
             monthly_cost = get_cost_of_living(city, country)
-            cost_source  = "RapidAPI"
+            cost_source  = RAPIDAPI_SOURCE
 
         salary_vs_market = salary - market_salary
         monthly_income   = round(salary / 12)
@@ -320,10 +324,10 @@ def analyse_direct(request):
         city, country, salary, job_title
     )
     if monthly_cost:
-        cost_source = "Classmate API"
+        cost_source = CLASSMATE_API_SOURCE
     else:
         monthly_cost = get_cost_of_living(city, country)
-        cost_source  = "RapidAPI"
+        cost_source  = RAPIDAPI_SOURCE
 
     salary_vs_market = salary - market_salary
     monthly_income   = round(salary / 12)
