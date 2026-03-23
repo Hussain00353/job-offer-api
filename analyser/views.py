@@ -12,7 +12,9 @@ RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '')
 
 # ── Constants ─────────────────────────────────────────────
 CLASSMATE_API_SOURCE = "Classmate API"
-RAPIDAPI_SOURCE= "RapidAPI"
+RAPIDAPI_SOURCE      = "RapidAPI"
+INDEX_TEMPLATE       = 'analyser/index.html'
+RESULTS_TEMPLATE     = 'analyser/results.html'
 
 # ── Irish cities list ─────────────────────────────────────
 IRISH_CITIES = [
@@ -68,8 +70,7 @@ def get_cost_of_living_classmate(city, country, salary, job_title):
         data     = response.json()
         if 'cost' in data:
             return round(data['cost'], 2)
-        else:
-            return None
+        return None
     except Exception:
         return None
 
@@ -93,11 +94,13 @@ def get_cost_of_living(city, country):
         if 'prices' not in data:
             return 2960
         prices = data['prices']
+
         def get_by_id(good_id):
             item = next(
                 (p for p in prices if p['good_id'] == good_id), None
             )
             return round(item['avg'], 2) if item else 0
+
         rent      = get_by_id(29)
         transport = get_by_id(46)
         utilities = get_by_id(54)
@@ -121,11 +124,10 @@ def get_cost_of_living(city, country):
         , 2)
         eating_out    = round(get_by_id(38) * 12, 2)
         entertainment = round(get_by_id(42) * 2 + get_by_id(43), 2)
-        total = round(
+        return round(
             rent + transport + utilities +
             internet + groceries + eating_out + entertainment
         , 2)
-        return total
     except Exception:
         return 2960
 
@@ -148,6 +150,29 @@ def get_recommendation(score, salary_vs_market):
     else:
         return "Poor Offer - Consider Declining"
 
+# ── Helper: get cost source ───────────────────────────────
+def get_monthly_cost(city, country, salary, job_title):
+    monthly_cost = get_cost_of_living_classmate(
+        city, country, salary, job_title
+    )
+    if monthly_cost:
+        return monthly_cost, CLASSMATE_API_SOURCE
+    return get_cost_of_living(city, country), RAPIDAPI_SOURCE
+
+# ── Helper: validate form inputs ─────────────────────────
+def validate_inputs(job_title, city, salary_str):
+    if not job_title or any(char.isdigit() for char in job_title):
+        return None, 'Please enter a valid job title (no numbers)'
+    if city not in IRISH_CITIES:
+        return None, 'Please select a valid Irish city'
+    try:
+        salary = int(salary_str)
+        if salary < 10000 or salary > 999999:
+            return None, 'Please enter a salary between €10,000 and €999,999'
+        return salary, None
+    except ValueError:
+        return None, 'Please enter a valid salary number'
+
 # ── REST API view ─────────────────────────────────────────
 @api_view(['POST'])
 def analyse(request):
@@ -163,20 +188,13 @@ def analyse(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # get market salary
     salary_data   = get_market_salary(job_title, city)
     market_salary = salary_data['median_salary'] if salary_data else 0
     salary_source = salary_data['salary_source'] if salary_data else 'N/A'
 
-    # get cost of living from classmate API first
-    monthly_cost = get_cost_of_living_classmate(
+    monthly_cost, cost_source = get_monthly_cost(
         city, country, salary, job_title
     )
-    if monthly_cost:
-        cost_source = CLASSMATE_API_SOURCE
-    else:
-        monthly_cost = get_cost_of_living(city, country)
-        cost_source  = RAPIDAPI_SOURCE
 
     salary_vs_market = salary - market_salary
     monthly_income   = round(salary / 12)
@@ -207,40 +225,16 @@ def index(request):
         salary_str = request.POST.get('gross_annual_salary', '').strip()
         country    = 'Ireland'
 
-        # validate job title
-        if not job_title or any(char.isdigit() for char in job_title):
-            return render(request, 'analyser/index.html', {
-                'error':  'Please enter a valid job title (no numbers)',
+        salary, error = validate_inputs(job_title, city, salary_str)
+        if error:
+            return render(request, INDEX_TEMPLATE, {
+                'error':  error,
                 'cities': IRISH_CITIES
             })
 
-        # validate city
-        if city not in IRISH_CITIES:
-            return render(request, 'analyser/index.html', {
-                'error':  'Please select a valid Irish city',
-                'cities': IRISH_CITIES
-            })
-
-        # validate salary
-        try:
-            salary = int(salary_str)
-            if salary < 10000 or salary > 999999:
-                return render(request, 'analyser/index.html', {
-                    'error':  'Please enter a salary between €10,000 and €999,999',
-                    'cities': IRISH_CITIES
-                })
-        except:
-            return render(request, 'analyser/index.html', {
-                'error':  'Please enter a valid salary number',
-                'cities': IRISH_CITIES
-            })
-
-        # get market salary
         salary_data = get_market_salary(job_title, city)
-
-        # if job not found → show error
         if not salary_data:
-            return render(request, 'analyser/index.html', {
+            return render(request, INDEX_TEMPLATE, {
                 'error':  f'No salary data found for "{job_title}" in {city}. Please try a different job title.',
                 'cities': IRISH_CITIES
             })
@@ -250,15 +244,9 @@ def index(request):
         salary_count  = salary_data['salary_count']
         salary_source = salary_data['salary_source']
 
-        # get cost of living from classmate API first
-        monthly_cost = get_cost_of_living_classmate(
+        monthly_cost, cost_source = get_monthly_cost(
             city, country, salary, job_title
         )
-        if monthly_cost:
-            cost_source = CLASSMATE_API_SOURCE
-        else:
-            monthly_cost = get_cost_of_living(city, country)
-            cost_source  = RAPIDAPI_SOURCE
 
         salary_vs_market = salary - market_salary
         monthly_income   = round(salary / 12)
@@ -284,11 +272,9 @@ def index(request):
             'cost_source':               cost_source,
         }
 
-        return render(request, 'analyser/results.html',
-                     {'result': result})
+        return render(request, RESULTS_TEMPLATE, {'result': result})
 
-    return render(request, 'analyser/index.html',
-                 {'cities': IRISH_CITIES})
+    return render(request, INDEX_TEMPLATE, {'cities': IRISH_CITIES})
 
 # ── Direct API view (for classmates) ─────────────────────
 @api_view(['POST'])
@@ -305,9 +291,7 @@ def analyse_direct(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # get market salary
     salary_data = get_market_salary(job_title, city)
-
     if not salary_data:
         return Response(
             {'error': f'No salary data found for "{job_title}" in {city}'},
@@ -319,15 +303,9 @@ def analyse_direct(request):
     salary_count  = salary_data['salary_count']
     salary_source = salary_data['salary_source']
 
-    # get cost of living from classmate API first
-    monthly_cost = get_cost_of_living_classmate(
+    monthly_cost, cost_source = get_monthly_cost(
         city, country, salary, job_title
     )
-    if monthly_cost:
-        cost_source = CLASSMATE_API_SOURCE
-    else:
-        monthly_cost = get_cost_of_living(city, country)
-        cost_source  = RAPIDAPI_SOURCE
 
     salary_vs_market = salary - market_salary
     monthly_income   = round(salary / 12)
