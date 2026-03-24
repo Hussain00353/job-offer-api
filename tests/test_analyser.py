@@ -16,6 +16,7 @@ from django.urls import reverse
 
 from analyser.views import (
     calculate_score,
+    calculate_net_salary,
     get_recommendation,
     validate_inputs,
     get_monthly_cost,
@@ -24,39 +25,83 @@ from analyser.views import (
     get_cost_of_living,
 )
 
-client = APIClient()
+client        = APIClient()
 django_client = Client()
 
 # ── Test calculate_score ──────────────────────────────────
 def test_calculate_score_high_savings():
-    assert calculate_score(2754, 5417) == 100
+    score = calculate_score(2754, 5417, 4000)
+    assert score == 100
 
 def test_calculate_score_low_savings():
-    score = calculate_score(500, 5417)
+    score = calculate_score(500, 5417, 0)
     assert 0 < score <= 100
 
 def test_calculate_score_no_income():
-    assert calculate_score(1000, 0) == 0
+    assert calculate_score(1000, 0, 0) == 0
 
 def test_calculate_score_negative_savings():
-    assert calculate_score(-500, 5417) == 0
+    assert calculate_score(-500, 5417, 0) == 0
 
+def test_calculate_score_above_market():
+    score = calculate_score(2000, 5000, 5000)
+    assert score > 0
+
+def test_calculate_score_below_market():
+    score = calculate_score(2000, 5000, -25000)
+    assert score >= 0
 
 # ── Test get_recommendation ───────────────────────────────
 def test_recommendation_excellent():
-    assert get_recommendation(85, 5000) == "Excellent Offer"
+    assert get_recommendation(85) == "Excellent Offer"
 
 def test_recommendation_good():
-    rec = get_recommendation(70, -4000)
-    assert rec == "Good Offer"
+    assert get_recommendation(60) == "Good Offer"
 
 def test_recommendation_fair():
-    rec = get_recommendation(50, -7000)
-    assert rec == "Fair Offer - Try to Negotiate"
+    assert get_recommendation(45) == "Fair Offer - Try to Negotiate"
 
 def test_recommendation_poor():
-    assert get_recommendation(20, -20000) == "Poor Offer - Consider Declining"
+    assert get_recommendation(20) == "Poor Offer - Consider Declining"
 
+def test_recommendation_boundary_excellent():
+    assert get_recommendation(75) == "Excellent Offer"
+
+def test_recommendation_boundary_good():
+    assert get_recommendation(55) == "Good Offer"
+
+def test_recommendation_boundary_fair():
+    assert get_recommendation(40) == "Fair Offer - Try to Negotiate"
+
+def test_recommendation_boundary_poor():
+    assert get_recommendation(39) == "Poor Offer - Consider Declining"
+
+# ── Test calculate_net_salary ─────────────────────────────
+def test_net_salary_basic():
+    result = calculate_net_salary(65000)
+    assert result['net_monthly'] > 0
+    assert result['net_monthly'] < result['gross_monthly']
+    assert result['paye_monthly'] > 0
+    assert result['usc_monthly'] > 0
+    assert result['prsi_monthly'] > 0
+
+def test_net_salary_low_income():
+    result = calculate_net_salary(20000)
+    assert result['net_monthly'] > 0
+    assert result['gross_monthly'] == round(20000 / 12, 2)
+
+def test_net_salary_high_income():
+    result = calculate_net_salary(100000)
+    assert result['net_monthly'] > 0
+    assert result['usc_monthly'] > 0
+
+def test_net_salary_keys():
+    result = calculate_net_salary(65000)
+    assert 'gross_monthly'  in result
+    assert 'paye_monthly'   in result
+    assert 'usc_monthly'    in result
+    assert 'prsi_monthly'   in result
+    assert 'net_monthly'    in result
 
 # ── Test validate_inputs ──────────────────────────────────
 def test_validate_valid_input():
@@ -100,7 +145,6 @@ def test_validate_valid_limerick():
     salary, error = validate_inputs("DevOps Engineer", "Limerick", "70000")
     assert salary == 70000
 
-
 # ── Test get_monthly_cost ─────────────────────────────────
 def test_get_monthly_cost_classmate_success():
     with patch('analyser.views.get_cost_of_living_classmate') as mock:
@@ -116,7 +160,6 @@ def test_get_monthly_cost_classmate_fallback():
             assert cost == 2662.66
             assert source == "RapidAPI"
 
-
 # ── Test get_market_salary ────────────────────────────────
 def test_get_market_salary_success():
     mock_response = MagicMock()
@@ -129,126 +172,110 @@ def test_get_market_salary_success():
             "salary_count": 122
         }]
     }'''
-
     with patch('http.client.HTTPSConnection') as mock_conn:
         instance = mock_conn.return_value
         instance.getresponse.return_value = mock_response
-
         result = get_market_salary('Cloud Engineer', 'Dublin')
         assert result['median_salary'] == 61000
 
 def test_get_market_salary_no_data():
     mock_response = MagicMock()
     mock_response.read.return_value = b'{"data": []}'
-
     with patch('http.client.HTTPSConnection') as mock_conn:
         instance = mock_conn.return_value
         instance.getresponse.return_value = mock_response
-
         assert get_market_salary('Unknown', 'Dublin') is None
 
 def test_get_market_salary_exception():
     with patch('http.client.HTTPSConnection', side_effect=Exception()):
         assert get_market_salary('Cloud Engineer', 'Dublin') is None
 
-
 # ── Test get_cost_of_living_classmate ─────────────────────
 def test_classmate_success():
     mock_response = MagicMock()
     mock_response.json.return_value = {'cost': 2090.07}
-
     with patch('requests.post', return_value=mock_response):
-        assert get_cost_of_living_classmate('Dublin', 'Ireland', 65000, 'Cloud Engineer') == 2090.07
+        assert get_cost_of_living_classmate(
+            'Dublin', 'Ireland', 65000, 'Cloud Engineer'
+        ) == 2090.07
 
 def test_classmate_no_cost():
     mock_response = MagicMock()
     mock_response.json.return_value = {}
-
     with patch('requests.post', return_value=mock_response):
-        assert get_cost_of_living_classmate('Dublin', 'Ireland', 65000, 'Cloud Engineer') is None
+        assert get_cost_of_living_classmate(
+            'Dublin', 'Ireland', 65000, 'Cloud Engineer'
+        ) is None
 
 def test_classmate_exception():
     with patch('requests.post', side_effect=Exception()):
-        assert get_cost_of_living_classmate('Dublin', 'Ireland', 65000, 'Cloud Engineer') is None
-
+        assert get_cost_of_living_classmate(
+            'Dublin', 'Ireland', 65000, 'Cloud Engineer'
+        ) is None
 
 # ── Test get_cost_of_living ───────────────────────────────
 def test_cost_of_living_no_prices():
     mock_response = MagicMock()
     mock_response.read.return_value = b'{"error": "not found"}'
-
     with patch('http.client.HTTPSConnection') as mock_conn:
         instance = mock_conn.return_value
         instance.getresponse.return_value = mock_response
-
         assert get_cost_of_living('Dublin', 'Ireland') == 2960
 
 def test_cost_of_living_exception():
     with patch('http.client.HTTPSConnection', side_effect=Exception()):
         assert get_cost_of_living('Dublin', 'Ireland') == 2960
 
-
-# ── API VIEW TESTS (FIXED URLS) ───────────────────────────
+# ── API View Tests ────────────────────────────────────────
 @patch('analyser.views.get_market_salary')
 @patch('analyser.views.get_monthly_cost')
 def test_analyse_success(mock_cost, mock_salary):
     mock_salary.return_value = {'median_salary': 60000, 'salary_source': 'Mock'}
-    mock_cost.return_value = (2000, "MockAPI")
-
-    url = reverse('analyse')
-
+    mock_cost.return_value   = (2000, "MockAPI")
+    url      = reverse('analyse')
     response = client.post(url, {
         'job_title': 'Cloud Engineer',
         'city': 'Dublin',
         'gross_annual_salary': 65000
     }, format='json')
-
     assert response.status_code == 200
     assert 'affordability_score' in response.data
 
 def test_analyse_missing_fields():
-    url = reverse('analyse')
+    url      = reverse('analyse')
     response = client.post(url, {}, format='json')
     assert response.status_code == 400
-
 
 @patch('analyser.views.get_market_salary')
 @patch('analyser.views.get_monthly_cost')
 def test_analyse_direct_success(mock_cost, mock_salary):
     mock_salary.return_value = {
         'median_salary': 60000,
-        'confidence': 'HIGH',
-        'salary_count': 10,
+        'confidence':    'HIGH',
+        'salary_count':  10,
         'salary_source': 'Mock'
     }
     mock_cost.return_value = (2000, "MockAPI")
-
-    url = reverse('analyse_direct')
-
+    url      = reverse('analyse_direct')
     response = client.post(url, {
         'job_title': 'Cloud Engineer',
         'city': 'Dublin',
         'gross_annual_salary': 65000
     }, format='json')
-
     assert response.status_code == 200
 
 @patch('analyser.views.get_market_salary')
 def test_analyse_direct_no_salary(mock_salary):
     mock_salary.return_value = None
-
-    url = reverse('analyse_direct')
-
+    url      = reverse('analyse_direct')
     response = client.post(url, {
         'job_title': 'Unknown',
         'city': 'Dublin',
         'gross_annual_salary': 65000
     }, format='json')
-
     assert response.status_code == 404
 
-
-# ── DJANGO VIEW TESTS ─────────────────────────────────────
+# ── Django View Tests ─────────────────────────────────────
 def test_index_get():
     response = django_client.get('/')
     assert response.status_code == 200
@@ -261,23 +288,20 @@ def test_index_invalid_input():
     })
     assert response.status_code == 200
 
-
 @patch('analyser.views.get_market_salary')
 @patch('analyser.views.get_monthly_cost')
 def test_index_success(mock_cost, mock_salary):
     mock_salary.return_value = {
         'median_salary': 60000,
-        'confidence': 'HIGH',
-        'salary_count': 10,
+        'confidence':    'HIGH',
+        'salary_count':  10,
         'salary_source': 'Mock'
     }
     mock_cost.return_value = (2000, "MockAPI")
-
     response = django_client.post('/', {
         'job_title': 'Cloud Engineer',
         'city': 'Dublin',
         'gross_annual_salary': '65000'
     })
-
     assert response.status_code == 200
     assert b'Cloud Engineer' in response.content
