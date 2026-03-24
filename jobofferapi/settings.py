@@ -131,8 +131,11 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://2d38a09a07d34b61960283a9f9c0975d.vfs.cloud9.us-east-1.amazonaws.com'
+    'https://2d38a09a07d34b61960283a9f9c0975d.vfs.cloud9.us-east-1.amazonaws.com',
+    'https://*.elasticbeanstalk.com',
 ]
 
 # environment variables 
 load_dotenv(os.path.join(BASE_DIR, '.env'))
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
