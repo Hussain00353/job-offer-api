@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 from dotenv import load_dotenv
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -133,8 +134,5 @@ CSRF_TRUSTED_ORIGINS = [
     'https://2d38a09a07d34b61960283a9f9c0975d.vfs.cloud9.us-east-1.amazonaws.com'
 ]
 
-# ── Environment variables ─────────────────────────────────
-import os
-RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '')
-
-load_dotenv()
+# environment variables 
+load_dotenv(os.path.join(BASE_DIR, '.env'))

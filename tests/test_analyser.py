@@ -47,10 +47,12 @@ def test_recommendation_excellent():
     assert get_recommendation(85, 5000) == "Excellent Offer"
 
 def test_recommendation_good():
-    assert get_recommendation(70, -5000) == "Good Offer"
+    rec = get_recommendation(70, -4000)
+    assert rec == "Good Offer"
 
 def test_recommendation_fair():
-    assert get_recommendation(50, -15000) == "Fair Offer - Try to Negotiate"
+    rec = get_recommendation(50, -7000)
+    assert rec == "Fair Offer - Try to Negotiate"
 
 def test_recommendation_poor():
     assert get_recommendation(20, -20000) == "Poor Offer - Consider Declining"

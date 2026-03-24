@@ -1,13 +1,17 @@
 import os
-import requests
 import http.client
 import json
+import requests
+from dotenv import load_dotenv
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import render
 
-# ── RapidAPI credentials ─────────────────────────────────
+# ── Load environment variables ────────────────────────────
+load_dotenv(override=True)
+
+# ── RapidAPI credentials ──────────────────────────────────
 RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '')
 
 # ── Constants ─────────────────────────────────────────────
@@ -24,18 +28,16 @@ IRISH_CITIES = [
     'Limerick',
 ]
 
-# ── Helper: get market salary from Glassdoor ─────────────
+# ── Helper: get market salary from JSearch ───────────────
 def get_market_salary(job_title, city):
     try:
-        conn = http.client.HTTPSConnection(
-            "job-salary-data.p.rapidapi.com"
-        )
+        conn = http.client.HTTPSConnection("jsearch.p.rapidapi.com")
         headers = {
             'x-rapidapi-key':  RAPIDAPI_KEY,
-            'x-rapidapi-host': "job-salary-data.p.rapidapi.com"
+            'x-rapidapi-host': "jsearch.p.rapidapi.com"
         }
-        location = f"{city} Ireland"
-        url      = f"/job-salary?job_title={requests.utils.quote(job_title)}&location={requests.utils.quote(location)}&radius=25"
+        location = f"{city}, Ireland"
+        url      = f"/estimated-salary?job_title={requests.utils.quote(job_title)}&location={requests.utils.quote(location)}&radius=100"
         conn.request("GET", url, headers=headers)
         res  = conn.getresponse()
         data = json.loads(res.read().decode("utf-8"))
@@ -50,7 +52,7 @@ def get_market_salary(job_title, city):
             'max_salary':    round(salary_data['max_salary']),
             'confidence':    salary_data['confidence'],
             'salary_count':  salary_data['salary_count'],
-            'salary_source': "Public API (Glassdoor via RapidAPI)",
+            'salary_source': "Public API (Glassdoor via JSearch)",
         }
 
     except Exception:
@@ -139,18 +141,18 @@ def calculate_score(monthly_savings, monthly_income):
         return 0
     return min(100, round((monthly_savings / monthly_income) * 200))
 
-# ── Helper: recommendation ───────────────────────────────
+# ── Helper: recommendation ────────────────────────────────
 def get_recommendation(score, salary_vs_market):
     if score >= 80 and salary_vs_market >= 0:
         return "Excellent Offer"
-    elif score >= 60 and salary_vs_market >= -10000:
+    elif score >= 60 and salary_vs_market >= -5000:
         return "Good Offer"
-    elif score >= 40:
+    elif score >= 40 and salary_vs_market >= -10000:
         return "Fair Offer - Try to Negotiate"
     else:
         return "Poor Offer - Consider Declining"
 
-# ── Helper: get cost source ───────────────────────────────
+# ── Helper: get monthly cost and source ──────────────────
 def get_monthly_cost(city, country, salary, job_title):
     monthly_cost = get_cost_of_living_classmate(
         city, country, salary, job_title
@@ -217,7 +219,7 @@ def analyse(request):
         'cost_source':               cost_source,
     })
 
-# ── Frontend views ────────────────────────────────────────
+# ── Frontend view ─────────────────────────────────────────
 def index(request):
     if request.method == 'POST':
         job_title  = request.POST.get('job_title', '').strip()
@@ -329,3 +331,4 @@ def analyse_direct(request):
         'salary_source':             salary_source,
         'cost_source':               cost_source,
     })
+    
