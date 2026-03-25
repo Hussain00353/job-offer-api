@@ -12,16 +12,16 @@ def calculate_score(monthly_savings, monthly_income, salary_vs_market=0):
     if monthly_savings <= 0:
         return 0
 
-    # affordability component (0-70 points)
-    affordability = min(70, round((monthly_savings / monthly_income) * 140))
+    # affordability component (0-60 points)
+    affordability = min(60, round((monthly_savings / monthly_income) * 200))
 
-    # market position component (0-30 points)
+    # market position component (0-40 points)
     if salary_vs_market >= 0:
-        market_score = 30
+        market_score = 40
     elif salary_vs_market >= -5000:
-        market_score = 20
+        market_score = 25
     elif salary_vs_market >= -10000:
-        market_score = 10
+        market_score = 15
     elif salary_vs_market >= -20000:
         market_score = 5
     else:
@@ -31,11 +31,11 @@ def calculate_score(monthly_savings, monthly_income, salary_vs_market=0):
 
 # ── Helper: recommendation ────────────────────────────────
 def get_recommendation(score):
-    if score >= 75:
+    if score >= 70:
         return "Excellent Offer"
-    elif score >= 55:
+    elif score >= 50:
         return "Good Offer"
-    elif score >= 40:
+    elif score >= 35:
         return "Fair Offer - Try to Negotiate"
     else:
         return "Poor Offer - Consider Declining"
