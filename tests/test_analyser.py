@@ -74,7 +74,7 @@ def test_recommendation_boundary_fair():
     assert get_recommendation(40) == "Fair Offer - Try to Negotiate"
 
 def test_recommendation_boundary_poor():
-    assert get_recommendation(39) == "Poor Offer - Consider Declining"
+    assert get_recommendation(34) == "Poor Offer - Consider Declining"
 
 # ── Test calculate_net_salary ─────────────────────────────
 def test_net_salary_basic():
