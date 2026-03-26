@@ -25,7 +25,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install django djangorestframework requests boto3 pytest python-dotenv pytest-cov gunicorn
+          pip install django djangorestframework requests boto3 pytest python-dotenv pytest-cov gunicorn django-csp django-permissions-policy
 
       - name: Run tests with coverage
         run: |
