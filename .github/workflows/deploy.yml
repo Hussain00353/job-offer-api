@@ -1,20 +1,16 @@
 name: CI/CD Pipeline
-
 on:
   push:
     branches:
       - main
-
 permissions:
   contents: read
   actions: write
-
 jobs:
   # CI JOB
   test:
     name: CI - Run Tests & Quality Scan
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,7 +21,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-          cache: 'pip'   
+          cache: 'pip'
 
       - name: Install dependencies
         run: |
@@ -35,11 +31,16 @@ jobs:
         run: |
           python -m pytest tests/test_analyser.py -v --tb=short \
             --cov=analyser \
-            --cov-report=xml:coverage.xml
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing
         env:
           DJANGO_SETTINGS_MODULE: jobofferapi.settings
           PYTHONPATH: .
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+
+      - name: Fix coverage paths for SonarCloud
+        run: |
+          sed -i 's|<source>.*</source>|<source>analyser</source>|g' coverage.xml
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v2
@@ -50,7 +51,7 @@ jobs:
           args: >
             -Dsonar.python.coverage.reportPaths=coverage.xml
 
-  # CD - ZAP SCAN  
+  # CD - ZAP SCAN
   zap-scan:
     name: CD - ZAP Security Scan
     runs-on: ubuntu-latest
