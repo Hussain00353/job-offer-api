@@ -50,7 +50,7 @@ jobs:
           args: >
             -Dsonar.python.coverage.reportPaths=coverage.xml
 
-# CD - ZAP SCAN  
+  # CD - ZAP SCAN  
   zap-scan:
     name: CD - ZAP Security Scan
     runs-on: ubuntu-latest
