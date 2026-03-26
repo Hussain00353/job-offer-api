@@ -6,10 +6,10 @@ on:
       - main
 
 jobs:
+  # ── CI: Continuous Integration ──────────────────
   test:
-    name: Run Tests
+    name: CI - Run Tests & Quality Scan
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -44,8 +44,16 @@ jobs:
           args: >
             -Dsonar.python.coverage.reportPaths=coverage.xml
 
-
-
-
-
-
+  # ── CD: Security Scan (ZAP) ──────────────────────
+  zap_scan:
+    name: CD - ZAP Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://job-offer-env.eba-svyaknhk.us-east-1.elasticbeanstalk.com'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+          fail_action: false
