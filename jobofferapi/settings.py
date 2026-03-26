@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-cb!1366in2f5pz!dt2^pg&sr)x7q9ldhcc^%5oky8n%l#1w^p$'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["*"]
 
@@ -152,25 +152,22 @@ SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY    = True
 
 # Fix: Content Security Policy (CSP) Header Not Set
-CONTENT_SECURITY_POLICY = {
-    "DIRECTIVES": {
-        "default-src":     ("'self'",),
-        "script-src":      ("'self'",),
-        "style-src":       ("'self'",),
-        "img-src":         ("'self'", "data:"),
-        "font-src":        ("'self'",),
-        "connect-src":     ("'self'",),
-        "frame-ancestors": ("'none'",),
-        "form-action":     ("'self'",),
-        "base-uri":        ("'self'",),
-        "object-src":      ("'none'",),
-    }
-}
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = ("'self'",)
+CSP_STYLE_SRC = ("'self'",)
+CSP_IMG_SRC = ("'self'", "data:")
+CSP_FONT_SRC = ("'self'",)
+CSP_CONNECT_SRC = ("'self'",)
+CSP_OBJECT_SRC = ("'none'",)
+CSP_BASE_URI = ("'self'",)
+CSP_FRAME_ANCESTORS = ("'none'",)
+CSP_FORM_ACTION = ("'self'",)
+
 # Fix: Cross-Origin-Embedder-Policy Header Missing
 SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = "require-corp"
 
 # Fix: Cross-Origin-Resource-Policy Header Missing
-SECURE_CROSS_ORIGIN_RESOURCE_POLICY = "same-site"
+SECURE_CROSS_ORIGIN_RESOURCE_POLICY = "same-origin"
 
 # Fix: Permissions Policy Header Not Set
 PERMISSIONS_POLICY = {
