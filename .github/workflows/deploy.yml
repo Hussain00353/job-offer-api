@@ -60,7 +60,7 @@ jobs:
           chmod 777 .
 
       - name: ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.9.0
         with:
           target: 'http://job-offer-env.eba-svyaknhk.us-east-1.elasticbeanstalk.com'
           fail_action: false
