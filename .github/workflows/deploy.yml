@@ -51,7 +51,7 @@ jobs:
           args: >
             -Dsonar.python.coverage.reportPaths=coverage.xml
 
-  # CD - ZAP SCAN  
+# CD - ZAP SCAN  
   zap-scan:
     name: CD - ZAP Security Scan
     runs-on: ubuntu-latest
@@ -59,6 +59,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Fix permissions
+        run: |
+          sudo chown -R 1000:1000 .
 
       - name: Run ZAP Security Scan
         run: |
@@ -69,6 +73,8 @@ jobs:
             zap-baseline.py \
             -t http://job-offer-env.eba-svyaknhk.us-east-1.elasticbeanstalk.com \
             -r zap-report.html \
+            -J zap-report.json \
+            -w zap-report.md \
             -I
         continue-on-error: true
 
@@ -77,4 +83,7 @@ jobs:
         if: always()
         with:
           name: zap-security-report
-          path: zap-report.html
+          path: |
+            zap-report.html
+            zap-report.json
+            zap-report.md
