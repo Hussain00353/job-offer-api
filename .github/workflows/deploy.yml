@@ -56,26 +56,25 @@ jobs:
     name: CD - ZAP Security Scan
     runs-on: ubuntu-latest
     needs: test
-
+  
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Prepare workspace
-        run: |
-          mkdir -p zap-reports
-          chmod -R 777 zap-reports
-
+  
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.9.0
         with:
           target: 'http://job-offer-env.eba-svyaknhk.us-east-1.elasticbeanstalk.com'
           fail_action: false
           allow_issue_writing: false
-          artifact_name: zap-scan   
-
-      - name: Upload ZAP Report
+          artifact_name: ""
+          cmd_options: "-J zap-report.json -w zap-report.md -r zap-report.html"
+  
+      - name: Upload ZAP Reports
         uses: actions/upload-artifact@v4
         with:
           name: zap-report
-          path: zap-report.html
+          path: |
+            zap-report.html
+            zap-report.json
+            zap-report.md
