@@ -41,10 +41,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'analyser',
+    'csp',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'csp.middleware.CSPMiddleware',                        
+    'django_permissions_policy.PermissionsPolicyMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -139,3 +142,34 @@ CSRF_TRUSTED_ORIGINS = [
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# ── Security Headers (fixing ZAP findings) ───────────
+# Fix: X-Content-Type-Options Missing
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# Fix: Cookie No HttpOnly Flag
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY    = True
+
+# Fix: Content Security Policy (CSP) Header Not Set
+CSP_DEFAULT_SRC    = ("'self'",)
+CSP_SCRIPT_SRC     = ("'self'", "'unsafe-inline'")
+CSP_STYLE_SRC      = ("'self'", "'unsafe-inline'")
+CSP_IMG_SRC        = ("'self'", "data:")
+CSP_FONT_SRC       = ("'self'",)
+CSP_CONNECT_SRC    = ("'self'",)
+
+# Fix: Cross-Origin-Embedder-Policy Header Missing
+SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = "require-corp"
+
+# Fix: Cross-Origin-Resource-Policy Header Missing
+SECURE_CROSS_ORIGIN_RESOURCE_POLICY = "same-site"
+
+# Fix: Permissions Policy Header Not Set
+PERMISSIONS_POLICY = {
+    "geolocation":    [],
+    "microphone":     [],
+    "camera":         [],
+    "payment":        [],
+    "usb":            [],
+}
