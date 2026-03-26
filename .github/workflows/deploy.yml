@@ -29,8 +29,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt || true
-          pip install django djangorestframework requests boto3 pytest python-dotenv pytest-cov
+          pip install django djangorestframework requests boto3 pytest python-dotenv pytest-cov gunicorn
 
       - name: Run tests with coverage
         run: |
