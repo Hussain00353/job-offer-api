@@ -5,11 +5,16 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  actions: write
+
 jobs:
-  # CI
+  # CI JOB
   test:
     name: CI - Run Tests & Quality Scan
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,9 +25,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
+          cache: 'pip'   
 
       - name: Install dependencies
         run: |
+          pip install -r requirements.txt || true
           pip install django djangorestframework requests boto3 pytest python-dotenv pytest-cov
 
       - name: Run tests with coverage
@@ -36,7 +43,7 @@ jobs:
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarcloud-github-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -44,20 +51,20 @@ jobs:
           args: >
             -Dsonar.python.coverage.reportPaths=coverage.xml
 
-  # CD: ZAP
+  # CD - ZAP SCAN  
   zap-scan:
     name: CD - ZAP Security Scan
     runs-on: ubuntu-latest
     needs: test
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create ZAP output directory
+      - name: Prepare workspace
         run: |
           mkdir -p zap-reports
-          chmod 777 zap-reports
-          chmod 777 .
+          chmod -R 777 zap-reports
 
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.9.0
@@ -65,3 +72,10 @@ jobs:
           target: 'http://job-offer-env.eba-svyaknhk.us-east-1.elasticbeanstalk.com'
           fail_action: false
           allow_issue_writing: false
+          artifact_name: zap-scan   
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: zap-report.html
