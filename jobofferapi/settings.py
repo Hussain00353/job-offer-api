@@ -154,12 +154,16 @@ CSRF_COOKIE_HTTPONLY    = True
 # Fix: Content Security Policy (CSP) Header Not Set
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
-        "default-src": ("'self'",),
-        "script-src":  ("'self'", "'unsafe-inline'"),
-        "style-src":   ("'self'", "'unsafe-inline'"),
-        "img-src":     ("'self'", "data:"),
-        "font-src":    ("'self'",),
-        "connect-src": ("'self'",),
+        "default-src":     ("'self'",),
+        "script-src":      ("'self'",),
+        "style-src":       ("'self'",),
+        "img-src":         ("'self'", "data:"),
+        "font-src":        ("'self'",),
+        "connect-src":     ("'self'",),
+        "frame-ancestors": ("'none'",),
+        "form-action":     ("'self'",),
+        "base-uri":        ("'self'",),
+        "object-src":      ("'none'",),
     }
 }
 # Fix: Cross-Origin-Embedder-Policy Header Missing
