@@ -45,7 +45,7 @@ jobs:
             -Dsonar.python.coverage.reportPaths=coverage.xml
 
   # CD: ZAP
-  zap_scan:
+  zap-scan:
     name: CD - ZAP Security Scan
     runs-on: ubuntu-latest
     needs: test
